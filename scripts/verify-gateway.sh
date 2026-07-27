@@ -16,22 +16,23 @@ failed=0
 ok()   { echo "  ok   $1${2:+ - $2}"; }
 fail() { echo "  FAIL $1 - $2"; failed=1; }
 
-# Reads a value out of a JSON document on stdin by walking the given path
-# segments; numeric segments index into lists.
+# Reads a value out of a JSON document by walking the given path segments;
+# numeric segments index into lists. The document is passed as an argument
+# rather than on stdin, so this stays usable inside command substitution.
 pick() {
-  python3 - "$@" <<'PY'
+  python3 -c '
 import json, sys
 try:
-    node = json.load(sys.stdin)
+    node = json.loads(sys.argv[1])
 except Exception:
     sys.exit(0)
-for part in sys.argv[1:]:
+for part in sys.argv[2:]:
     try:
         node = node[int(part)] if part.isdigit() else node[part]
     except Exception:
         sys.exit(0)
 print(node if isinstance(node, str) else json.dumps(node))
-PY
+' "$@"
 }
 
 echo "checking $BASE"
@@ -50,14 +51,14 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/v1/chat/completions
 key_json=$(curl -s -X POST "$BASE/key/generate" \
   -H "authorization: Bearer $MASTER" -H 'content-type: application/json' \
   -d '{"key_alias":"verification-'"$RANDOM"'","rpm_limit":1,"max_budget":5,"models":["self-test"]}')
-KEY=$(printf '%s' "$key_json" | pick key)
+KEY=$(pick "$key_json" key)
 if [ -n "$KEY" ]; then ok "virtual key created" "rpm limit 1, budget 5"; else fail "virtual key created" "$key_json"; fi
 
 # 4. The key works.
 body=$(curl -s -X POST "$BASE/v1/chat/completions" \
   -H "authorization: Bearer $KEY" -H 'content-type: application/json' \
   -d '{"model":"self-test","messages":[{"role":"user","content":"hi"}]}')
-answer=$(printf '%s' "$body" | pick choices 0 message content)
+answer=$(pick "$body" choices 0 message content)
 if [ -n "$answer" ]; then ok "completion through the virtual key" "${answer:0:44}"; else fail "completion through the virtual key" "$body"; fi
 
 # 5. The limit is enforced. Redis holds the counter, so this is also the check
@@ -70,7 +71,7 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/v1/chat/completions
 
 # 6. The key is readable back out of the database.
 info=$(curl -s "$BASE/key/info?key=$KEY" -H "authorization: Bearer $MASTER")
-alias_name=$(printf '%s' "$info" | pick info key_alias)
+alias_name=$(pick "$info" info key_alias)
 if [ -n "$alias_name" ]; then ok "key is readable back from the database" "$alias_name"; else fail "key is readable back" "$info"; fi
 
 # 7. Models can be added at runtime - the reason store_model_in_db is on.
