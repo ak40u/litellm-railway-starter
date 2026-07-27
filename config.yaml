@@ -1,0 +1,40 @@
+# LiteLLM proxy configuration.
+#
+# Models are stored in the database (store_model_in_db), so add your providers
+# in the UI rather than here - they survive redeploys and take effect without a
+# restart. The one model below is a self-test that answers without calling any
+# provider, so a fresh deployment can be checked before you have added a key.
+
+model_list:
+  - model_name: self-test
+    litellm_params:
+      model: openai/gpt-4o-mini
+      mock_response: "LiteLLM is running. Add your own models in the UI, then delete this one."
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  store_model_in_db: true
+
+litellm_settings:
+  # Redis rather than in-process memory: a second replica has to see the same
+  # cache, otherwise identical requests are paid for twice.
+  cache: true
+  cache_params:
+    type: redis
+    host: os.environ/REDIS_HOST
+    port: os.environ/REDIS_PORT
+    password: os.environ/REDIS_PASSWORD
+    ttl: 600
+  # Providers reject unknown parameters; dropping them keeps one client working
+  # across models that support different option sets.
+  drop_params: true
+
+router_settings:
+  # Rate limits and spend counters live in Redis for the same reason: per-process
+  # counters mean each replica enforces its own private version of the limit.
+  redis_host: os.environ/REDIS_HOST
+  redis_port: os.environ/REDIS_PORT
+  redis_password: os.environ/REDIS_PASSWORD
+  routing_strategy: simple-shuffle
+  num_retries: 2
