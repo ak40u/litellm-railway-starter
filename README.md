@@ -70,7 +70,7 @@ too, and referenced from the UI as `os.environ/NAME`.
 
 ## What is pinned, and why
 
-The image is pinned to `ghcr.io/berriai/litellm-database:v1.93.0`. LiteLLM ships
+The image is pinned to `ghcr.io/berriai/litellm-database:v1.103.2`. LiteLLM ships
 several releases a week; a moving tag turns a working deployment into a lottery
 on every restart. The `-database` variant carries the Prisma toolchain, so the
 proxy migrates its own schema on first boot rather than needing a separate job.

@@ -20,7 +20,7 @@ Without Postgres there are no virtual keys, no budgets and no spend tracking —
 
 ### Deployment Dependencies
 
-- [LiteLLM](https://github.com/BerriAI/litellm) — the proxy, pinned to `ghcr.io/berriai/litellm-database:v1.93.0`
+- [LiteLLM](https://github.com/BerriAI/litellm) — the proxy, pinned to `ghcr.io/berriai/litellm-database:v1.103.2`
 - Postgres — virtual keys, budgets, spend, and models added at runtime
 - Redis — shared rate-limit counters and response cache
 - [Template source](https://github.com/ak40u/litellm-railway-starter)
